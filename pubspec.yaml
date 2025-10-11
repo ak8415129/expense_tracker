@@ -1,0 +1,26 @@
+name: expense_tracker
+description: A simple expense tracker with charts, local storage and CSV export.
+publish_to: 'none'
+
+environment:
+  sdk: '>=2.17.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.0.5
+  sqflite: ^2.2.8+4
+  path_provider: ^2.0.15
+  shared_preferences: ^2.1.1
+  fl_chart: ^1.1.1
+  csv: ^5.0.0
+  share_plus: ^12.0.0
+  path: ^1.8.3
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

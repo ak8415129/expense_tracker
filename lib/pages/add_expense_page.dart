@@ -13,8 +13,7 @@ class AddExpensePage extends StatefulWidget {
 class _AddExpensePageState extends State<AddExpensePage> {
   final _formKey = GlobalKey<FormState>();
   final _amountCtrl = TextEditingController();
-  String _category = 'Food';
-  DateTime _date = DateTime.now();
+  String _category = 'Food'; DateTime _date = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +28,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
             children: [
               TextFormField(
                 controller: _amountCtrl,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Amount'),
                 validator: (v) => (v == null || v.isEmpty) ? 'Enter amount' : null,
               ),
@@ -53,6 +52,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           firstDate: DateTime(2000),
                           lastDate: DateTime(2100),
                         );
+                        if (!mounted) return;
                         if (d != null) setState(() => _date = d);
                       },
                       child: const Text('Select'))
@@ -64,8 +64,11 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   if (_formKey.currentState!.validate()) {
                     final amt = double.parse(_amountCtrl.text);
                     final e = Expense(amount: amt, category: _category, date: _date);
+                    // Capture NavigatorState before the async gap to avoid
+                    // using BuildContext after await.
+                    final navigator = Navigator.of(context);
                     await prov.addExpense(e);
-                    Navigator.pop(context);
+                    if (mounted) navigator.pop();
                   }
                 },
                 child: const Text('Save'),

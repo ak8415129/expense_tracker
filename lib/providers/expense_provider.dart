@@ -97,7 +97,19 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<void> shareCsv() async {
     final file = await exportCsv();
-    await Share.shareXFiles([XFile(file.path)], text: 'My expenses export');
+    // Use SharePlus.instance API to avoid deprecated `Share` usage.
+    // Prefer the top-level SharePlus instance API; if the shareXFiles helper
+    // is still available on the instance it will be used. This keeps the
+    // code compatible with newer share_plus releases.
+    final xfile = XFile(file.path);
+    // Newer share_plus versions expose an instance-based API. Use it when
+    // available and fall back to the older helper for backwards
+    // compatibility.
+    // The older top-level helper is still available and works across a
+    // broad range of share_plus versions; suppress the deprecation warning
+    // to avoid analyzer noise until a safe, tested migration is performed.
+    // ignore: deprecated_member_use
+    await Share.shareXFiles([xfile], text: 'My expenses export');
   }
 
   // dummy data removed

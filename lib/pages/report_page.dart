@@ -29,7 +29,7 @@ class ReportPage extends StatelessWidget {
               child: const Text('Export CSV & Share'),
             ),
             const SizedBox(height: 16),
-            Expanded(child: Center(child: Text('Charts expanded view here'))),
+            const Expanded(child: Center(child: Text('Charts expanded view here'))),
           ],
         ),
       ),

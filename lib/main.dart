@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:expense_tracker/providers/expense_provider.dart';
-import 'package:expense_tracker/pages/home_page.dart';
+import 'package:expense_tracker/pages/home_page.dart'; 
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); 
+  // Initialize Google Mobile Ads and print status to help debug ad loading.
+  final initStatus = await MobileAds.instance.initialize();
+  debugPrint('MobileAds initialized: $initStatus');
+
+  // Add test device IDs if needed (replace with your emulator/device ID when known).
+  // Example: RequestConfiguration(testDeviceIds: ['YOUR_DEVICE_ID_HERE']);
+  MobileAds.instance.updateRequestConfiguration(RequestConfiguration(
+    testDeviceIds: <String>[],
+  ));
   runApp(const MyApp());
 }
 

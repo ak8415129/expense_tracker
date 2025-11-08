@@ -6,6 +6,11 @@ import 'package:expense_tracker/pages/report_page.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
+// --- ADMOB IMPORTS ---
+import 'dart:io';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+// --- END ADMOB IMPORTS ---
+
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -16,11 +21,15 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _nameCtrl = TextEditingController();
 
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    super.dispose();
-  }
+  // --- ADMOB STATE VARIABLES ---
+  BannerAd? _bannerAd;
+
+  // Use the test ad unit ID from your sample code.
+  // Replace with your own ID for production.
+  final String _adUnitId = Platform.isAndroid
+      ? 'ca-app-pub-3940256099942544/9214589741'
+      : 'ca-app-pub-3940256099942544/2435281174';
+  // --- END ADMOB STATE VARIABLES ---
 
   @override
   void initState() {
@@ -33,6 +42,58 @@ class _HomePageState extends State<HomePage> {
       }
     });
   }
+
+  // --- ADMOB: LOAD AD ---
+  // We use didChangeDependencies to ensure context is available for MediaQuery
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadAd();
+  }
+
+  void _loadAd() async {
+    // If an ad is already loaded, do nothing.
+    if (_bannerAd != null) {
+      return;
+    }
+  
+    // Get an AnchoredAdaptiveBannerAdSize before loading the ad.
+    final size = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+        MediaQuery.sizeOf(context).width.truncate());
+
+    if (size == null) {
+      debugPrint('Unable to get banner ad size');
+      return;
+    }
+
+    BannerAd(
+      adUnitId: _adUnitId,
+      request: const AdRequest(),
+      size: size,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          debugPrint('$ad loaded.');
+          setState(() {
+            _bannerAd = ad as BannerAd;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('BannerAd failed to load: $err');
+          ad.dispose();
+        },
+      ),
+    ).load();
+  }
+  // --- END ADMOB: LOAD AD ---
+
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _bannerAd?.dispose(); // <-- Dispose the ad
+    super.dispose();
+  }
+
 
   Future<void> _showNameDialog(ExpenseProvider prov) async {
     _nameCtrl.text = prov.userName;
@@ -69,7 +130,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Edit Monthly Budget'),
         content: TextField(
           controller: ctrl,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(labelText: 'Budget'),
         ),
         actions: [
@@ -93,6 +154,7 @@ class _HomePageState extends State<HomePage> {
     final monthlyTotal = prov.expenses
         .where((e) => e.date.year == now.year && e.date.month == now.month)
         .fold<double>(0, (p, e) => p + e.amount);
+        
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -119,35 +181,54 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            // Bar chart placeholder
-            Card(
-              child: SizedBox(
-                height: 180,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: BarChartWidget(),
-                ),
+      // --- WRAP BODY WITH COLUMN TO PLACE AD AT THE BOTTOM ---
+      body: Column(
+        children: [
+          // Make your original content take up all available space
+          const Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  // Bar chart placeholder
+                  Card(
+                    child: SizedBox(
+                      height: 180,
+                      child: Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: BarChartWidget(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  // Pie chart placeholder
+                  Card(
+                    child: SizedBox(
+                      height: 180,
+                      child: Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: PieChartWidget(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Expanded(child: ExpenseList()),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            // Pie chart placeholder
-            Card(
-              child: SizedBox(
-                height: 180,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: PieChartWidget(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(child: ExpenseList()),
-          ],
-        ),
+          ),
+
+          // --- ADMOB BANNER WIDGET ---
+          // Display the ad if it's loaded
+          if (_bannerAd != null)
+            Container(
+              alignment: Alignment.center,
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            )
+          // --- END ADMOB BANNER WIDGET ---
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
@@ -156,6 +237,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+
+// No changes are needed for the widgets below this line
+// (BarChartWidget, PieChartWidget, ExpenseList)
 
 class BarChartWidget extends StatelessWidget {
   const BarChartWidget({Key? key}) : super(key: key);
@@ -182,7 +267,7 @@ class BarChartWidget extends StatelessWidget {
     final labels = visible.map((e) => DateFormat.Md().format(e.key)).toList();
     final values = visible.map((e) => e.value).toList();
 
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final maxValue = values.isEmpty ? 10.0 : values.reduce((a, b) => a > b ? a : b);
     final maxY = (maxValue * 1.2).clamp(10, double.infinity);
 
     final barGroups = values.asMap().entries.map((entry) {
@@ -220,15 +305,15 @@ class BarChartWidget extends StatelessWidget {
             },
           ),
         ),
-        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
     ));
   }
 }
 
 class PieChartWidget extends StatelessWidget {
-  PieChartWidget({Key? key}) : super(key: key);
+  const PieChartWidget({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -300,13 +385,18 @@ class PieChartWidget extends StatelessWidget {
 }
 
 class ExpenseList extends StatelessWidget {
+  const ExpenseList({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     final prov = Provider.of<ExpenseProvider>(context);
+    // Sort expenses from newest to oldest
+    final sortedExpenses = List.from(prov.expenses)..sort((a, b) => b.date.compareTo(a.date));
+
     return ListView.builder(
-      itemCount: prov.expenses.length,
+      itemCount: sortedExpenses.length,
       itemBuilder: (context, i) {
-        final e = prov.expenses[i];
+        final e = sortedExpenses[i];
         return ListTile(
           title: Text(e.category),
           subtitle: Text(DateFormat.yMMMd().format(e.date)),

@@ -13,12 +13,14 @@ class ExpenseProvider extends ChangeNotifier {
   String _userName = '';
   double _monthlyBudget = 1000.0;
   bool _askedForName = false;
+  bool _prefsLoaded = false;
   ThemeMode _themeMode = ThemeMode.system;
 
   List<Expense> get expenses => _expenses;
   String get userName => _userName;
   double get monthlyBudget => _monthlyBudget;
   bool get askedForName => _askedForName;
+  bool get prefsLoaded => _prefsLoaded;
   ThemeMode get themeMode => _themeMode;
 
   final DBHelper _db = DBHelper();
@@ -36,6 +38,7 @@ class ExpenseProvider extends ChangeNotifier {
     _askedForName = sp.getBool('askedForName') ?? false;
     final t = sp.getString('themeMode') ?? 'system';
     _themeMode = t == 'light' ? ThemeMode.light : t == 'dark' ? ThemeMode.dark : ThemeMode.system;
+    _prefsLoaded = true;
     notifyListeners();
   }
 

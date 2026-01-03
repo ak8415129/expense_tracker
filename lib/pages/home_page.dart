@@ -34,13 +34,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Prompt for name after first frame if it's empty
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final prov = Provider.of<ExpenseProvider>(context, listen: false);
-      if (prov.userName.isEmpty && !prov.askedForName) {
-        _showNameDialog(prov);
-      }
-    });
+    // Keep initState minimal; initial setup prompts are scheduled from build
+    // after provider preferences are loaded to avoid showing them repeatedly.
   }
 
   // --- ADMOB: LOAD AD ---
@@ -147,9 +142,25 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _setupInitialPrompts(ExpenseProvider prov) async {
+    // Only run when prefs have been loaded and user hasn't completed setup.
+    if (!prov.prefsLoaded) return;
+    if (prov.userName.isEmpty && !prov.askedForName) {
+      await _showNameDialog(prov);
+      // After the name is saved we prompt for budget once.
+      await _showBudgetDialog(prov);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final prov = Provider.of<ExpenseProvider>(context);
+    // Schedule the one-time initial setup prompts once prefs are ready.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (prov.prefsLoaded && prov.userName.isEmpty && !prov.askedForName) {
+        _setupInitialPrompts(prov);
+      }
+    });
     final now = DateTime.now();
     final monthlyTotal = prov.expenses
         .where((e) => e.date.year == now.year && e.date.month == now.month)
